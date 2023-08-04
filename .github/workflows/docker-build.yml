@@ -6,7 +6,7 @@ name: Docker Images Build
 on:
   # Triggers the workflow on push but only for the master branch and only if certain paths were changed
   push:
-    branches: [ master ]
+    branches: [ main ]
     paths: [ '**/Dockerfile' ]
 
 

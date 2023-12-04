@@ -34,6 +34,6 @@ jobs:
           do
             folder=${versionFilePath%"/Dockerfile"}
             echo $folder
-            docker build $folder --file $folder/Dockerfile
+            # docker build $folder --file $folder/Dockerfile
           done;
       

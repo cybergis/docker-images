@@ -7,6 +7,7 @@
 # * building torch from source, requires python >=3.8
 FROM nvidia/cuda:11.2.2-cudnn8-devel-centos7
 
+ARG GCCVERSION=9.2.0
 ARG PYTHONVERSION=3.8.18
 
 ENV TORCH_CUDA_ARCH_LIST="3.5"
@@ -20,6 +21,7 @@ RUN yum install -y \
         libffi-devel \
         openssl-devel \
         wget \
+        which \
         xz-devel
 
 # install cmake >=3.18 for Pytorch
@@ -47,9 +49,9 @@ RUN cd /tmp && \
     pip install --upgrade cmake
 
 # install newer version of GCC (required for pytorch)
-RUN wget ftp://ftp.mirrorservice.org/sites/sourceware.org/pub/gcc/releases/gcc-7.2.0/gcc-7.2.0.tar.gz && \
-    tar -xvzf gcc-7.2.0.tar.gz  && \
-    cd gcc-7.2.0  && \
+RUN wget ftp://ftp.mirrorservice.org/sites/sourceware.org/pub/gcc/releases/gcc-$GCCVERSION/gcc-$GCCVERSION.tar.gz && \
+    tar -xvzf gcc-$GCCVERSION.tar.gz  && \
+    cd gcc-$GCCVERSION  && \
     ./contrib/download_prerequisites  && \
     ./configure \
         --enable-bootstrap \
@@ -84,18 +86,7 @@ ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64:$LD_LIBRARY_PATH
 RUN cd /tmp && \
     git clone --recursive https://github.com/pytorch/pytorch.git && \
     cd pytorch && \
-    git submodule sync && git submodule update --init --recursive && \
-    pip install -r requirements.txt && \
-    python3 setup.py install
-RUN cd /tmp && \
-    git clone --recursive https://github.com/pytorch/vision.git && \
-    cd vision && \
-    git submodule sync && git submodule update --init --recursive && \
-    pip install -r requirements.txt && \
-    python3 setup.py install
-RUN cd /tmp && \
-    git clone --recursive https://github.com/pytorch/audio.git && \
-    cd vision && \
+    git checkout tags/v1.13.1 && \
     git submodule sync && git submodule update --init --recursive && \
     pip install -r requirements.txt && \
     python3 setup.py install

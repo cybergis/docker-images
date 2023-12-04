@@ -2,3 +2,5 @@ geopandas
 matplotlib
 numpy
 pandas
+torchaudio
+torchvision

@@ -9,12 +9,11 @@ FROM nvidia/cuda:11.2.2-cudnn8-devel-centos7
 
 ARG GCCVERSION=9.2.0
 ARG PYTHONVERSION=3.8.18
-
 ENV TORCH_CUDA_ARCH_LIST="3.5"
 
 # Install system dependencies
-RUN yum -y groupinstall "Development Tools"
-RUN yum install -y \
+RUN yum -y groupinstall "Development Tools" && \
+        yum install -y \
         bzip2-devel \
         git \
         glib2-devel \
@@ -22,7 +21,8 @@ RUN yum install -y \
         openssl-devel \
         wget \
         which \
-        xz-devel
+        xz-devel && \
+    yum clean all
 
 # install cmake >=3.18 for Pytorch
 # RUN cd /tmp && \
@@ -91,9 +91,11 @@ RUN cd /tmp && \
     pip install -r requirements.txt && \
     python3 setup.py install
 
-RUN rm -rf /tmp
-
 # Install any python packages you need
 COPY requirements.txt requirements.txt
 
 RUN python3 -m pip install -r requirements.txt
+
+# cleanup
+RUN rm -rf /tmp
+

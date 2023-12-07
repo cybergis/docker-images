@@ -9,11 +9,12 @@ ARG GCCVERSION=9.2.0
 ARG PYTHONVERSION=3.8.18
 ARG PYTORCHVERSION="v1.13.1"
 ENV TORCH_CUDA_ARCH_LIST="3.5 7.5"
-
+# NEEDED FOR TORCHVISION WHEN BUILDING FROM SOURCES
+ENV FORCE_CUDA=1
 # KEEP THIS IN SYNC: https://pytorch.org/audio/stable/installation.html#compatibility-matrix
-ARG TORCHAUDIOVERSION="0.13.1"
+ARG TORCHAUDIOVERSION="v0.13.1"
 # KEEP THIS IN SYNC: https://github.com/pytorch/vision#installation
-ARG TORCHVISIONVERSION="0.14.1"
+ARG TORCHVISIONVERSION="v0.14.1"
 
 # Install system dependencies
 RUN yum -y groupinstall "Development Tools" && \
@@ -22,33 +23,15 @@ RUN yum -y groupinstall "Development Tools" && \
         git \
         glib2-devel \
         libffi-devel \
+        libpng-devel \
+        perl-core \
+        pcre-devel \
         wget \
         which \
         xz-devel \
         zlib-devel && \
     yum clean all && \
     rm -rf /var/cache/yum/*
-
-# install openssl 
-RUN cd /tmp && \
-    curl https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1j.tar.gz --output openssl.tar.gz  && \
-    tar xzf openssl.tar.gz && \
-    cd openssl-1.1.1j/ && \
-    ./config --prefix=/usr --openssldir=/etc/ssl --libdir=lib no-shared zlib-dynamic && \
-    make && make test && make install && \
-    rm -r /tmp/*
-
-# install python3.8
-RUN cd /tmp && \
-    wget https://www.python.org/ftp/python/$PYTHONVERSION/Python-$PYTHONVERSION.tgz && \
-    tar xvf Python-$PYTHONVERSION.tgz && \
-    cd Python-$PYTHONVERSION/ && \
-    ./configure --enable-optimizations --with-ensurepip=install && \
-    make altinstall && \
-    ln -fs /usr/local/bin/python3.8 /usr/local/bin/python3 && \
-    python3 -m pip install --upgrade cmake && \
-    python3 -m pip cache purge && \
-    rm -r /tmp/*
 
 # install newer version of GCC (required for pytorch)
 RUN cd /tmp && \
@@ -84,7 +67,30 @@ RUN cd /tmp && \
     ln -s /usr/local/bin/gcc /usr/local/bin/cc && \
     rm -r /tmp/*
 
+
 ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64:$LD_LIBRARY_PATH
+
+# install openssl 
+RUN cd /tmp && \
+    curl https://ftp.openssl.org/source/old/1.1.1/openssl-1.1.1j.tar.gz --output openssl.tar.gz  && \
+    tar xzf openssl.tar.gz && \
+    cd openssl-1.1.1j/ && \
+    ./config --prefix=/usr --openssldir=/etc/ssl --libdir=lib no-shared zlib-dynamic && \
+    make && make install && \
+    openssl version && \
+    rm -r /tmp/*
+
+# install python3.8
+RUN cd /tmp && \
+    wget https://www.python.org/ftp/python/$PYTHONVERSION/Python-$PYTHONVERSION.tgz && \
+    tar xvf Python-$PYTHONVERSION.tgz && \
+    cd Python-$PYTHONVERSION/ && \
+    ./configure --enable-optimizations --with-ensurepip=install && \
+    make altinstall && \
+    ln -fs /usr/local/bin/python3.8 /usr/local/bin/python3 && \
+    python3 -m pip install --upgrade cmake && \
+    python3 -m pip cache purge && \
+    rm -r /tmp/*
 
 # build pytorch from source
 RUN cd /tmp && \
@@ -99,7 +105,25 @@ RUN cd /tmp && \
 
 # Install any python packages you need
 COPY requirements.txt requirements.txt
-
 RUN python3 -m pip install -r requirements.txt && \
-    python3 -m pip install --no-deps torchaudio==$TORCHAUDIOVERSION torchvision==$TORCHVISIONVERSION && \
     python3 -m pip cache purge
+
+# install torchvision from source
+RUN cd /tmp && \
+    git clone --recursive https://github.com/pytorch/vision.git && \
+    cd vision && \
+    git checkout tags/$TORCHVISIONVERSION && \
+    git submodule sync && git submodule update --init --recursive && \
+    FORCE_CUDA=${FORCE_CUDA} python3 setup.py install && \
+    python3 -m pip cache purge && \
+    rm -r /tmp/*
+
+# install torchaudio from source
+RUN cd /tmp && \
+    git clone --recursive https://github.com/pytorch/audio.git && \
+    cd audio && \
+    git checkout tags/$TORCHAUDIOVERSION && \
+    git submodule sync && git submodule update --init --recursive && \
+    FORCE_CUDA=${FORCE_CUDA} python3 setup.py install && \
+    python3 -m pip cache purge && \
+    rm -r /tmp/*

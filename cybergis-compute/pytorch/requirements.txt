@@ -1,5 +1,9 @@
 geopandas
+kaldi_io
 matplotlib
 numpy
 pandas
+pillow
 requests
+scipy
+SoundFile

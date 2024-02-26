@@ -1,5 +1,5 @@
 # Author: Alexander Michels <michels9@illinois.edu>
-# cybergisx/pytorch:0.1.10
+# cybergisx/pytorch:0.1.12
 # https://hub.docker.com/repository/docker/cybergisx/pytorch
 # Changes:
 # * compiling openssl to /usr so it works
@@ -118,12 +118,14 @@ RUN cd /tmp && \
     python3 -m pip cache purge && \
     rm -r /tmp/*
 
+ENV CUDA_HOME="/usr/local/cuda"
+
 # install torchaudio from source
 RUN cd /tmp && \
     git clone --recursive https://github.com/pytorch/audio.git && \
     cd audio && \
     git checkout tags/$TORCHAUDIOVERSION && \
     git submodule sync && git submodule update --init --recursive && \
-    FORCE_CUDA=${FORCE_CUDA} python3 setup.py install && \
+    CUDA_HOME=${CUDA_HOME} FORCE_CUDA=${FORCE_CUDA} python3 setup.py install && \
     python3 -m pip cache purge && \
     rm -r /tmp/*

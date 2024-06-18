@@ -3,9 +3,9 @@
 # https://hub.docker.com/repository/docker/cybergisx/pytorch
 # Changes:
 # * compiling openssl to /usr so it works
-FROM nvidia/cuda:11.2.2-cudnn8-devel-centos7
+FROM nvidia/cuda:11.3.1-cudnn8-devel-centos7
 
-ARG CUDA_VERSION=11.2
+ARG CUDA_VERSION=11.3
 ARG GCCVERSION=9.2.0
 ARG PYTHONVERSION=3.8.18
 # apparently what's needed for 1.2.2: https://github.com/pytorch/pytorch/issues/50032#issuecomment-1522634629
@@ -15,9 +15,17 @@ ENV CUDA_NVCC_EXECUTABLE=/usr/local/cuda/bin/nvcc
 ENV FORCE_CUDA=1
 ARG PYTORCHVERSION="v1.12.1"
 ENV PYTORCH_BUILD_NUMBER="1"
-ENV PYTORCH_BUILD_VERSION="1.12.1+cu112"
+ENV PYTORCH_BUILD_VERSION="1.12.1+cu113"
 ENV TORCH_CUDA_ARCH_LIST="3.5 7.5"
 ENV USE_CUDA=1
+# KEEP THIS IN SYNC: https://pytorch.org/audio/stable/installation.html#compatibility-matrix
+ARG TORCHAUDIOVERSION="v0.12.1"
+# KEEP THIS IN SYNC: https://github.com/pytorch/vision#installation
+ARG TORCHVISIONVERSION="v0.13.1"
+ENV TORCHVISION_PACKAGE_SUFFIX="+cu112"
+ARG TORCHMETRICSVERSION="v1.3.1"
+ARG TORCHGEOVERSION="v0.5.0"
+
 
 # Install system dependencies
 RUN yum -y groupinstall "Development Tools" && \
@@ -26,6 +34,7 @@ RUN yum -y groupinstall "Development Tools" && \
         git \
         glib2-devel \
         libffi-devel \
+	libjpeg-turbo-devel \
         libpng-devel \
         perl-core \
         pcre-devel \
@@ -115,10 +124,58 @@ RUN python3 -c "import torch; print(torch.__version__)"
 # Install any python packages you need
 COPY requirements.txt requirements.txt
 RUN python3 -m pip install -r requirements.txt && \
-    python3 -m pip cache purge
+    python3 -m pip cache purge && \
+    python3 -c "import torch; print(torch.__version__)"
+
+# overwrite the version from requirements.txt so we use the correct CUDA
+RUN python3 -m pip install --no-deps --force-reinstall \
+     torchvision==0.13.1+cu113 \
+     torchaudio==0.12.1+cu113 \
+     --extra-index-url https://download.pytorch.org/whl/cu113
+
+# install torchvision from source
+RUN cd /tmp && \
+    git clone --recursive https://github.com/pytorch/vision.git && \
+    cd vision && \
+    git checkout tags/$TORCHVISIONVERSION && \
+    git submodule sync && git submodule update --init --recursive && \
+    FORCE_CUDA=${FORCE_CUDA} python3 setup.py install && \
+    python3 -m pip cache purge && \
+    rm -r /tmp/*
+
+# install torchaudio from source
+RUN cd /tmp && \
+    git clone --recursive https://github.com/pytorch/audio.git && \
+    cd audio && \
+    git checkout tags/$TORCHAUDIOVERSION && \
+    git submodule sync && git submodule update --init --recursive && \
+    CUDA_HOME=${CUDA_HOME} FORCE_CUDA=${FORCE_CUDA} python3 setup.py install && \
+    python3 -m pip cache purge && \
+    rm -r /tmp/*
+
+# install torchmetrics from source
+RUN cd /tmp && \
+    git clone --recursive https://github.com/Lightning-AI/torchmetrics.git && \
+    cd vision && \
+    git checkout tags/$TORCHMETRICSVERSION && \
+    git submodule sync && git submodule update --init --recursive && \
+    FORCE_CUDA=${FORCE_CUDA} python3 setup.py install && \
+    python3 -m pip cache purge && \
+    rm -r /tmp/*
+
+# install torchgeo from source
+RUN cd /tmp && \
+    git clone --recursive https://github.com/microsoft/torchgeo.git && \
+    cd vision && \
+    git checkout tags/$TORCHGEOVERSION && \
+    git submodule sync && git submodule update --init --recursive && \
+    FORCE_CUDA=${FORCE_CUDA} python3 setup.py install && \
+    python3 -m pip cache purge && \
+    rm -r /tmp/*
+
+
 RUN python3 -c "import torch; print(torch.__version__)" && \
     python3 -c "import torchvision; print(torchvision.__version__)" && \
     python3 -c "import torchaudio; print(torchaudio.__version__)" && \
     python3 -c "import torchgeo; print(torchgeo.__version__)"
-
 

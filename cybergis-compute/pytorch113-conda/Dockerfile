@@ -1,23 +1,13 @@
 # Author: Alexander Michels <michels9@illinois.edu>
-# cybergisx/pytorch:0.1.12
+# cybergisx/pytorch:0.1.13-conda
 # https://hub.docker.com/repository/docker/cybergisx/pytorch
 # Changes:
 # * compiling openssl to /usr so it works
-FROM nvidia/cuda:11.2.2-cudnn8-devel-centos7
+FROM nvidia/cuda:11.3.1-cudnn8-devel-centos7
 
-ARG CUDA_VERSION=11.2
+ARG CUDA_VERSION=11.3
 ARG GCCVERSION=9.2.0
-ARG PYTHONVERSION=3.8.18
-# apparently what's needed for 1.2.2: https://github.com/pytorch/pytorch/issues/50032#issuecomment-1522634629
-# other env vars: https://github.com/pytorch/pytorch/blob/main/setup.py
-ENV CUDA_HOME=/usr/local/cuda
-ENV CUDA_NVCC_EXECUTABLE=/usr/local/cuda/bin/nvcc
-ENV FORCE_CUDA=1
-ARG PYTORCHVERSION="v1.12.1"
-ENV PYTORCH_BUILD_NUMBER="1"
-ENV PYTORCH_BUILD_VERSION="1.12.1+cu112"
-ENV TORCH_CUDA_ARCH_LIST="3.5 7.5"
-ENV USE_CUDA=1
+ARG PYTHONVERSION=3.9.18
 
 # Install system dependencies
 RUN yum -y groupinstall "Development Tools" && \
@@ -26,6 +16,7 @@ RUN yum -y groupinstall "Development Tools" && \
         git \
         glib2-devel \
         libffi-devel \
+	libjpeg-turbo-devel \
         libpng-devel \
         perl-core \
         pcre-devel \
@@ -83,14 +74,14 @@ RUN cd /tmp && \
     openssl version && \
     rm -r /tmp/*
 
-# install python3.8
+# install python3.9
 RUN cd /tmp && \
     wget https://www.python.org/ftp/python/$PYTHONVERSION/Python-$PYTHONVERSION.tgz && \
     tar xvf Python-$PYTHONVERSION.tgz && \
     cd Python-$PYTHONVERSION/ && \
     ./configure --enable-optimizations --with-ensurepip=install && \
     make altinstall && \
-    ln -fs /usr/local/bin/python3.8 /usr/local/bin/python3 && \
+    ln -fs /usr/local/bin/python3.9 /usr/local/bin/python3 && \
     python3 -m pip install --upgrade cmake && \
     python3 -m pip cache purge && \
     rm -r /tmp/*
@@ -99,26 +90,18 @@ ENV CUDA_HOME="/usr/local/cuda"
 ENV PATH="${CUDA_HOME}:${PATH}"
 ENV PYTHONNOUSERSITE=True
 
-# build pytorch from source
-RUN cd /tmp && \
-    git clone --recursive https://github.com/pytorch/pytorch.git && \
-    cd pytorch && \
-    git checkout tags/$PYTORCHVERSION && \
-    git submodule sync && git submodule update --init --recursive && \
-    python3 -m pip install -r requirements.txt && \
-    python3 setup.py clean && \
-    TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST} python3 setup.py install && \
-    python3 -m pip cache purge && \
-    rm -r /tmp/*
+RUN cd /tmp && curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh" && \
+    bash Miniforge3-$(uname)-$(uname -m).sh && \
+    mamba --version && \
+    mamba create --name env python=3.9
 
-RUN python3 -c "import torch; print(torch.__version__)"
-# Install any python packages you need
-COPY requirements.txt requirements.txt
-RUN python3 -m pip install -r requirements.txt && \
-    python3 -m pip cache purge
+RUN mamba activate env && \
+    mamba install pytorch==1.12.1 torchvision==0.13.1 torchaudio==0.12.1 cudatoolkit=11.3 -c pytorch && \
+    python -c "import torch; print(torch.cuda.get_arch_list())"
+
+
 RUN python3 -c "import torch; print(torch.__version__)" && \
     python3 -c "import torchvision; print(torchvision.__version__)" && \
     python3 -c "import torchaudio; print(torchaudio.__version__)" && \
     python3 -c "import torchgeo; print(torchgeo.__version__)"
-
 

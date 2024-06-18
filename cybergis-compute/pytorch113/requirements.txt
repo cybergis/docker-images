@@ -1,5 +1,7 @@
 # pinning our version of pytorch
-torch==1.12.*
+torch==1.12.1
+torchaudio==0.12.1
+torchvision==0.13.1
 einops>=0.3
 fiona>=1.8.19
 geopandas
@@ -22,8 +24,6 @@ segmentation-models-pytorch>=0.2
 shapely>=1.7.1
 SoundFile
 timm>=0.4.12
-torchaudio
-torchgeo
-torchmetrics
-torchvision
+# torchgeo
+# torchmetrics
 typing-extensions; python_version < '3.9'

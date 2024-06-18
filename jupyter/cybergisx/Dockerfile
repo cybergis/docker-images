@@ -1,10 +1,10 @@
 # Author: Alexander Michels <michels9@illinois.edu>
-# cybergisx/cybergisx-dev:0.1.16
+# cybergisx/cybergisx-dev:0.1.17
 # https://hub.docker.com/repository/docker/cybergisx/cybergisx-dev
 # JupyterLab version: 4.0.3
 # JupyterHub version: 2.7.0
 # Changes:
-# * Testing out Jupyterlab 4
+# * Testing voila
 FROM jupyter/minimal-notebook:2022-01-12
 
 USER root
@@ -120,25 +120,24 @@ RUN pip install matplotlib && \
     fix-permissions "/home/${NB_USER}"
 
 RUN mamba install -y -c conda-forge \
-    ipyleaflet==0.15.0 \
+    ipyleaflet \
     ipympl \
-    # jupyter-collaboration \
+    jupyter-collaboration \
     jupyter_contrib_nbextensions \
     jupyterlab==4.0.3 \
     jupyterlab_code_formatter \
     jupyterlab-git \
     jupyterlab-sos \
     jupyterthemes \
-    notebook \
     nodejs \
+    notebook \
     rise
 
-RUN pip install autopep8 black flake8 ipython-sql jupyterlab==4.0.3 jupyterlab_rise nbgitpuller nbsphinx pycodestyle_magic stickyland
+RUN pip install autopep8 black flake8 ipython-sql jupyterlab==4.0.3 jupyterlab_rise nbgitpuller nbsphinx pycodestyle_magic stickyland voila
 # RUN pip install git+https://github.com/jupyterlab/jupyter-collaboration.git@7bd86d17b476daf68d49016db525054b324978ba
-RUN jupyter contrib nbextension install --sys-prefix && \
-    jupyter serverextension enable nbgitpuller --sys-prefix && \
+RUN jupyter serverextension enable nbgitpuller --sys-prefix && \
     jupyter nbextension enable init_cell/main --sys-prefix && \
-    jupyter nbextension enable --py ipyleaflet --sys-prefix && \
+    # jupyter nbextension enable --py ipyleaflet --sys-prefix && \
     jupyter nbextension enable python-markdown/main --sys-prefix && \
     jupyter nbextension list
 RUN python -m pip install --upgrade pip && pip --version && pip cache purge

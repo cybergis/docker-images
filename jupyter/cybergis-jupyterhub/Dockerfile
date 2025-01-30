@@ -1,9 +1,9 @@
 # Author: Alexander Michels <michels9@illinois.edu>
-# cybergisx/cybergis-jupyterhub:5.0.0b2
+# cybergisx/cybergis-jupyterhub:5.2.1
 # https://hub.docker.com/repository/docker/cybergisx/cybergis-jupyterhub
 # Changes:
-# * Upgraded to JupyterHub 5.0.0b2
-FROM quay.io/jupyterhub/jupyterhub:5.0.0b2
+# * Upgraded to JupyterHub 5.2.1
+FROM quay.io/jupyterhub/jupyterhub:5.2.1
 
 EXPOSE 8081
 
